@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KaamQueue — WhatsApp chats in, tomorrow's to-do list out</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#FAFAF8;--surface:#FFF;--surface-alt:#F3F1ED;
+  --text:#1A1A18;--text-muted:#6B6960;--text-light:#9A9689;
+  --green:#1B8C4E;--green-light:#E8F5EE;--green-dark:#146B3C;
+  --amber:#D4880F;--amber-light:#FFF7E6;
+  --red:#C53030;--red-light:#FFF0F0;
+  --border:#E5E2DB;--border-focus:#1B8C4E;
+  --radius:10px;--radius-lg:16px;
+  --font:'Inter',sans-serif;--font-hi:'Noto Sans Devanagari','Inter',sans-serif;
+  --max-w:680px;
+}
+html{scroll-behavior:smooth;font-size:16px}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased}
+
+/* HEADER */
+.topbar{position:sticky;top:0;z-index:50;background:rgba(250,250,248,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between}
+.logo{font-weight:800;font-size:1.15rem;letter-spacing:-.02em;display:flex;align-items:center;gap:.45rem}
+.logo-dot{width:10px;height:10px;border-radius:50%;background:var(--green)}
+.topbar nav a{font-size:.85rem;font-weight:500;color:var(--text-muted);text-decoration:none;margin-left:1.5rem;transition:color .15s}
+.topbar nav a:hover{color:var(--green)}
+
+/* HERO */
+.hero{max-width:var(--max-w);margin:0 auto;padding:5rem 1.5rem 3rem;text-align:left}
+.hero-tag{display:inline-block;font-size:.78rem;font-weight:600;color:var(--green);background:var(--green-light);padding:.3rem .75rem;border-radius:100px;margin-bottom:1.25rem}
+.hero h1{font-size:clamp(2rem,5.5vw,2.85rem);font-weight:800;line-height:1.15;letter-spacing:-.03em;margin-bottom:1rem}
+.hero h1 span{color:var(--green)}
+.hero p{font-size:1.05rem;color:var(--text-muted);max-width:540px;margin-bottom:2rem}
+.hero-cta{display:inline-flex;align-items:center;gap:.5rem;background:var(--green);color:#fff;font-weight:600;font-size:.95rem;padding:.75rem 1.5rem;border-radius:var(--radius);text-decoration:none;transition:background .15s}
+.hero-cta:hover{background:var(--green-dark)}
+
+/* STATS BAR */
+.stats-bar{max-width:var(--max-w);margin:0 auto 3rem;padding:0 1.5rem}
+.stats-inner{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);display:grid;grid-template-columns:repeat(3,1fr);text-align:center;overflow:hidden}
+.stat-item{padding:1.25rem .5rem;border-right:1px solid var(--border)}
+.stat-item:last-child{border-right:none}
+.stat-num{font-size:1.6rem;font-weight:800;color:var(--green);letter-spacing:-.02em}
+.stat-label{font-size:.72rem;color:var(--text-muted);font-weight:500;margin-top:.15rem}
+
+/* SECTION */
+section{max-width:var(--max-w);margin:0 auto;padding:0 1.5rem 4rem}
+.section-label{font-size:.72rem;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.5rem}
+section h2{font-size:1.55rem;font-weight:700;letter-spacing:-.02em;margin-bottom:1rem}
+section p.desc{color:var(--text-muted);font-size:.95rem;margin-bottom:1.5rem}
+
+/* PROBLEM */
+.problem-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;margin-bottom:1rem}
+.msg-bubble{font-family:var(--font-hi);background:var(--green-light);border-radius:var(--radius) var(--radius) var(--radius) 4px;padding:.85rem 1rem;font-size:.92rem;line-height:1.5;margin-bottom:.75rem;max-width:88%;position:relative}
+.msg-meta{font-size:.7rem;color:var(--text-light);text-align:right;margin-top:.25rem}
+.problem-text{font-size:.88rem;color:var(--text-muted);margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)}
+
+/* HOW IT WORKS */
+.steps{display:flex;flex-direction:column;gap:1rem}
+.step{display:flex;gap:1rem;align-items:flex-start}
+.step-num{flex-shrink:0;width:32px;height:32px;border-radius:50%;background:var(--green-light);color:var(--green);font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center}
+.step-body h3{font-size:.95rem;font-weight:600;margin-bottom:.2rem}
+.step-body p{font-size:.85rem;color:var(--text-muted)}
+
+/* TRY IT */
+#try{scroll-margin-top:80px}
+.try-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.try-header{padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.try-header h3{font-weight:700;font-size:1rem}
+.try-body{padding:1.5rem}
+.field-group{margin-bottom:1.25rem}
+.field-group label{display:block;font-size:.8rem;font-weight:600;margin-bottom:.4rem;color:var(--text)}
+.field-group select,.field-group textarea{width:100%;font-family:var(--font-hi);font-size:.9rem;padding:.65rem .85rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);transition:border-color .15s;resize:vertical}
+.field-group select:focus,.field-group textarea:focus{outline:none;border-color:var(--border-focus);box-shadow:0 0 0 3px rgba(27,140,78,.1)}
+.field-group textarea{min-height:100px}
+.field-group .hint{font-size:.72rem;color:var(--text-light);margin-top:.3rem}
+.btn-process{width:100%;padding:.8rem;font-family:var(--font);font-size:.95rem;font-weight:600;color:#fff;background:var(--green);border:none;border-radius:var(--radius);cursor:pointer;transition:background .15s}
+.btn-process:hover{background:var(--green-dark)}
+.btn-process:disabled{background:var(--text-light);cursor:wait}
+
+/* RESULT */
+.result-area{margin-top:1.5rem;display:none}
+.result-area.visible{display:block}
+.slip{background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;margin-bottom:1rem}
+.slip-header{display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;padding-bottom:.75rem;border-bottom:1px solid var(--border)}
+.slip-type-badge{font-size:.72rem;font-weight:600;padding:.25rem .6rem;border-radius:100px;background:var(--green-light);color:var(--green-dark)}
+.slip h4{font-size:.85rem;font-weight:600;color:var(--text-muted);margin-bottom:.5rem}
+.action-list{list-style:none;margin-bottom:1rem}
+.action-list li{font-size:.88rem;padding:.4rem 0;display:flex;align-items:flex-start;gap:.5rem}
+.action-list li::before{content:'→';color:var(--green);font-weight:700;flex-shrink:0}
+.confirm-list{background:var(--amber-light);border:1px solid #E8D5A0;border-radius:var(--radius);padding:.85rem 1rem;margin-bottom:1rem}
+.confirm-list h4{color:var(--amber);font-size:.8rem;margin-bottom:.35rem}
+.confirm-list ul{list-style:none}
+.confirm-list ul li{font-size:.85rem;padding:.2rem 0;color:#8B6914}
+.confirm-list ul li::before{content:'⚠ ';font-size:.75rem}
+.reply-draft{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem}
+.reply-draft h4{margin-bottom:.5rem}
+.reply-draft p{font-family:var(--font-hi);font-size:.9rem;line-height:1.6;color:var(--text)}
+.reply-lang{font-size:.7rem;color:var(--text-light);margin-top:.5rem}
+.error-box{background:var(--red-light);border:1px solid #E8A0A0;border-radius:var(--radius);padding:1rem;color:var(--red);font-size:.88rem;margin-top:1rem}
+
+/* GUARDRAILS */
+.guardrails{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+.guardrail{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem}
+.guardrail .icon{font-size:1.2rem;margin-bottom:.35rem}
+.guardrail h4{font-size:.82rem;font-weight:600;margin-bottom:.2rem}
+.guardrail p{font-size:.78rem;color:var(--text-muted)}
+
+/* FOOTER */
+footer{max-width:var(--max-w);margin:0 auto;padding:2rem 1.5rem 3rem;text-align:center;border-top:1px solid var(--border);font-size:.78rem;color:var(--text-light)}
+footer a{color:var(--green);text-decoration:none}
+
+@media(max-width:520px){
+  .stats-inner{grid-template-columns:1fr}
+  .stat-item{border-right:none;border-bottom:1px solid var(--border);padding:.85rem}
+  .stat-item:last-child{border-bottom:none}
+  .guardrails{grid-template-columns:1fr}
+  .hero{padding:3.5rem 1.25rem 2rem}
+  section{padding:0 1.25rem 3rem}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo"><span class="logo-dot"></span> KaamQueue</div>
+  <nav><a href="#problem">Problem</a><a href="#how">How</a><a href="#try">Try it</a></nav>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <span class="hero-tag">For kiranas, salons, clinics, tailors &amp; tuition centres</span>
+  <h1>WhatsApp chats in,<br><span>tomorrow's to-do list</span> out.</h1>
+  <p>Customers send orders, bookings and payment promises in whatever language they write. KaamQueue turns each message into a clear action slip — so nothing gets missed.</p>
+  <a href="#try" class="hero-cta">Try it now — paste a message</a>
+</section>
+
+<!-- LIVE STATS -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat-item"><div class="stat-num" id="totalRequests">—</div><div class="stat-label">requests organised</div></div>
+    <div class="stat-item"><div class="stat-num" id="totalShopTypes">—</div><div class="stat-label">business types served</div></div>
+    <div class="stat-item"><div class="stat-num" id="totalLanguages">—</div><div class="stat-label">languages detected</div></div>
+  </div>
+</div>
+
+<!-- PROBLEM -->
+<section id="problem">
+  <div class="section-label">The problem</div>
+  <h2>Requests stay buried in chats</h2>
+  <p class="desc">91% of online adults in India message a business every week. The built-in way to organise those requests? Manual labels on whole chats.</p>
+  <div class="problem-card">
+    <div class="msg-bubble">Bhaiya kal 3 butter rakh dena, 7 baje aaunga, ₹20 pending bhi add karna<div class="msg-meta">10:42 PM</div></div>
+    <div class="msg-bubble">Didi Sunday ko 2 log ayenge facial ke liye, 11 baje slot dedo<div class="msg-meta">11:15 PM</div></div>
+    <p class="problem-text">These are real tasks — an order, a booking, a payment reminder. Today they just sit in the chat, scrolled past by morning.</p>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="section-label">How it works</div>
+  <h2>Three steps, one slip</h2>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-body"><h3>Paste or forward a message</h3><p>Copy the customer's WhatsApp message exactly as it came — Hindi, English, Tamil, Hinglish, anything.</p></div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-body"><h3>Pick your business type</h3><p>Kirana, salon, clinic, tailor, tuition centre or other. This tells KaamQueue what kind of actions to extract.</p></div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-body"><h3>Get your action slip</h3><p>Request type, up to three actions with timing, a confirm checklist for anything you must verify, and a ready-to-send reply in the customer's language.</p></div></div>
+  </div>
+</section>
+
+<!-- TRY IT -->
+<section id="try">
+  <div class="section-label">Try it live</div>
+  <h2>Paste a customer message</h2>
+  <p class="desc">See exactly what KaamQueue returns. The reply it drafts will never confirm a price, slot, stock or refund you haven't verified.</p>
+  <div class="try-card">
+    <div class="try-header"><h3>KaamQueue demo</h3><span style="font-size:.75rem;color:var(--text-light)">Powered by Gemini</span></div>
+    <div class="try-body">
+      <div class="field-group">
+        <label for="shopType">Your business type</label>
+        <select id="shopType">
+          <option value="Kirana / Grocery Store">Kirana / Grocery store</option>
+          <option value="Salon / Beauty Parlour">Salon / Beauty parlour</option>
+          <option value="Clinic / Doctor's Office">Clinic / Doctor's office</option>
+          <option value="Tailor / Boutique">Tailor / Boutique</option>
+          <option value="Tuition Centre / Coaching">Tuition centre / Coaching</option>
+          <option value="Other Small Business">Other</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label for="customerMsg">Customer's WhatsApp message</label>
+        <textarea id="customerMsg" placeholder="e.g. Bhaiya kal 3 butter rakh dena, 7 baje aaunga, ₹20 pending bhi add karna"></textarea>
+        <div class="hint">Paste exactly as the customer sent it — any language works.</div>
+      </div>
+      <button class="btn-process" id="processBtn" onclick="processMessage()">Organise this request</button>
+      <div class="result-area" id="resultArea"></div>
+      <div class="error-box" id="errorBox" style="display:none"></div>
+    </div>
+  </div>
+</section>
+
+<!-- GUARDRAILS -->
+<section>
+  <div class="section-label">Safety</div>
+  <h2>What KaamQueue never does</h2>
+  <div class="guardrails">
+    <div class="guardrail"><div class="icon">🚫</div><h4>No price promises</h4><p>Never confirms prices, discounts, refunds or stock the owner hasn't verified.</p></div>
+    <div class="guardrail"><div class="icon">🔒</div><h4>No personal data stored</h4><p>Names, phone numbers and health details are stripped before anything is saved.</p></div>
+    <div class="guardrail"><div class="icon">💊</div><h4>No medical advice</h4><p>For clinic messages, it extracts the appointment request — never suggests diagnoses or treatments.</p></div>
+    <div class="guardrail"><div class="icon">🛡️</div><h4>Abuse-resistant</h4><p>Abusive or irrelevant messages are flagged, not processed. Reply tone stays courteous.</p></div>
+  </div>
+</section>
+
+<footer>
+  KaamQueue — built for India's 60M+ small businesses that run on WhatsApp.<br>
+  <a href="https://about.fb.com/news/2026/05/introducing-business-ai-on-whatsapp-for-small-businesses-in-india/" target="_blank" rel="noopener">Source: Meta/Kantar, May 2026</a> · ISB GenAI Assignment Demo
+</footer>
+
+<script>
+const VISITOR_KEY = (() => {
+  // Persist the visitor id so a page refresh doesn't reset the 5-request limit
+  const fresh = 'kq_visitor_' + Math.random().toString(36).slice(2,10);
+  try {
+    const saved = localStorage.getItem('kq_visitor');
+    if (saved) return saved;
+    localStorage.setItem('kq_visitor', fresh);
+  } catch(e) {}
+  return fresh;
+})();
+let requestCount = 0;
+const MAX_REQUESTS = 5;
+
+async function loadStats() {
+  try {
+    const r = await fetch('/api/stats');
+    if (!r.ok) return;
+    const d = await r.json();
+    document.getElementById('totalRequests').textContent = d.total_requests || 0;
+    document.getElementById('totalShopTypes').textContent = d.shop_types || 0;
+    document.getElementById('totalLanguages').textContent = d.languages || 0;
+  } catch(e) {
+    document.getElementById('totalRequests').textContent = '0';
+    document.getElementById('totalShopTypes').textContent = '0';
+    document.getElementById('totalLanguages').textContent = '0';
+  }
+}
+
+async function processMessage() {
+  const btn = document.getElementById('processBtn');
+  const resultArea = document.getElementById('resultArea');
+  const errorBox = document.getElementById('errorBox');
+  const msg = document.getElementById('customerMsg').value.trim();
+  const shopType = document.getElementById('shopType').value;
+
+  errorBox.style.display = 'none';
+  resultArea.className = 'result-area';
+  resultArea.innerHTML = '';
+
+  if (!msg) { showError('Please paste a customer message.'); return; }
+  if (msg.length > 500) { showError('Message too long — keep it under 500 characters.'); return; }
+
+  requestCount++;
+  if (requestCount > MAX_REQUESTS) {
+    showError('You\'ve used all 5 demo requests. Refresh for a new session or come back later.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Processing…';
+
+  try {
+    const r = await fetch('/api/process', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, shop_type: shopType, visitor_id: VISITOR_KEY })
+    });
+    const d = await r.json();
+    if (!r.ok) { showError(d.error || 'Something went wrong. Try again.'); return; }
+    renderSlip(d);
+    loadStats();
+  } catch(e) {
+    showError('Network error — check your connection and try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Organise this request';
+  }
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderSlip(d) {
+  const resultArea = document.getElementById('resultArea');
+  let actionsHtml = (d.actions || []).map(a => `<li>${esc(a)}</li>`).join('');
+  let confirmHtml = '';
+  if (d.confirm_items && d.confirm_items.length) {
+    confirmHtml = `<div class="confirm-list"><h4>Owner must confirm</h4><ul>${d.confirm_items.map(c=>`<li>${esc(c)}</li>`).join('')}</ul></div>`;
+  }
+  resultArea.innerHTML = `
+    <div class="slip">
+      <div class="slip-header"><span class="slip-type-badge">${esc(d.request_type)}</span></div>
+      <h4>Actions</h4>
+      <ul class="action-list">${actionsHtml}</ul>
+      ${confirmHtml}
+      <div class="reply-draft">
+        <h4>Draft reply for customer</h4>
+        <p>${esc(d.reply)}</p>
+        <div class="reply-lang">Language: ${esc(d.language_detected)}</div>
+      </div>
+    </div>`;
+  resultArea.className = 'result-area visible';
+}
+
+function showError(msg) {
+  const errorBox = document.getElementById('errorBox');
+  errorBox.textContent = msg;
+  errorBox.style.display = 'block';
+}
+
+loadStats();
+</script>
+</body>
+</html>
