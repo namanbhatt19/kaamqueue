@@ -11,7 +11,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Message and shop type are required.' });
   }
   if (message.length > 500) return res.status(400).json({ error: 'Message too long.' });
-  if (shop_type.length > 40) return res.status(400).json({ error: 'Invalid shop type.' });
+  // Only the dropdown's values reach the prompt and the stats
+  const SHOP_TYPES = ['Kirana / Grocery Store', 'Salon / Beauty Parlour', "Clinic / Doctor's Office", 'Tailor / Boutique', 'Tuition Centre / Coaching', 'Other Small Business'];
+  const shopType = SHOP_TYPES.includes(shop_type) ? shop_type : 'Other Small Business';
   const visitor_id = String(req.body.visitor_id || 'anon').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || 'anon';
 
   const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || '').trim();
@@ -39,23 +41,23 @@ export default async function handler(req, res) {
   // --- System prompt ---
   const systemPrompt = `You are KaamQueue, a task-extraction assistant for Indian small businesses (kiranas, salons, clinics, tailors, tuition centres).
 
-BUSINESS TYPE: ${shop_type}
+BUSINESS TYPE: ${shopType}
 
 TASK: The owner has pasted a customer's WhatsApp message. You must:
 1. Identify the REQUEST TYPE from: Order, Booking, Payment Due, Complaint, Enquiry, Follow-up, Other.
-2. Extract up to 3 ACTIONS with timing if the customer mentioned any.
+2. Extract up to 3 ACTIONS with timing if the customer mentioned any. Actions are neutral next steps for the owner; a refund, discount or price change is never an action, only "Review ..." of the demand.
 3. List CONFIRM ITEMS — anything the owner must verify before acting (e.g. a stated price, a requested slot, a refund demand, a stock query). If nothing needs confirmation, return an empty list.
 4. Draft a polite REPLY in the SAME LANGUAGE the customer wrote in. The reply must:
    - Acknowledge the request
    - NEVER promise or confirm a price, discount, refund, stock availability, or appointment slot
    - Say the owner will confirm shortly
-5. Detect the LANGUAGE of the customer's message.
+5. Detect the LANGUAGE of the customer's message. Use exactly one of: English, Hindi, Hinglish, Tamil, Telugu, Kannada, Malayalam, Marathi, Bengali, Gujarati, Punjabi, Other. Romanised Hindi mixed with English is Hinglish.
 6. Write a REDACTED copy of the message for storage: same meaning, but replace any person's name with [name], any phone number with [phone], and drop any symptom, illness or other health detail.
 
 GUARDRAILS — STRICTLY FOLLOW:
 - NEVER invent or confirm prices, discounts, refunds, stock, or availability.
 - NEVER give medical, legal, or financial advice.
-- If the message is abusive, irrelevant, or not a business request, set request_type to "Flagged" and reply politely that only business requests can be processed.
+- If the message is abusive, irrelevant, or not a business request, set request_type to "Flagged", leave actions and confirm items empty, and reply politely, in the customer's language, that only business requests can be processed.
 - Strip any names, phone numbers, or personal health details from your output.
 
 OUTPUT FORMAT (strict JSON, no markdown):
@@ -111,7 +113,7 @@ OUTPUT FORMAT (strict JSON, no markdown):
       },
       body: JSON.stringify({
         visitor_id: visitor_id,
-        shop_type: shop_type,
+        shop_type: shopType,
         language_detected: geminiResponse.language_detected || 'unknown',
         request_type: geminiResponse.request_type || 'Other',
         input_text: scrubContacts(redacted_message || '[redaction unavailable]').slice(0, 300),

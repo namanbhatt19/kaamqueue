@@ -28,7 +28,8 @@ export default async function handler(req, res) {
       { headers }
     );
     const shopData = await shopRes.json();
-    const shopTypes = new Set((shopData || []).map(r => r.shop_type)).size;
+    // Normalise older rows ("Kirana" vs "Kirana / Grocery Store") to one type each
+    const shopTypes = new Set((shopData || []).map(r => String(r.shop_type || '').split(/[\s/]/)[0].toLowerCase())).size;
 
     // Distinct languages
     const langRes = await fetch(
@@ -36,7 +37,11 @@ export default async function handler(req, res) {
       { headers }
     );
     const langData = await langRes.json();
-    const languages = new Set((langData || []).map(r => r.language_detected)).size;
+    // "Hindi (Hinglish)" and "Hinglish" count once; unknown/Other don't count
+    const languages = new Set((langData || []).map(r => {
+      const l = String(r.language_detected || '');
+      return (l.match(/\(([^)]+)\)/)?.[1] || l).trim().toLowerCase();
+    }).filter(l => l && l !== 'unknown' && l !== 'other')).size;
 
     // Most common request type
     const typeRes = await fetch(
