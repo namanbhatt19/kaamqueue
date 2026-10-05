@@ -48,11 +48,21 @@ export default async function handler(req, res) {
     (typeData || []).forEach(r => { typeCounts[r.request_type] = (typeCounts[r.request_type] || 0) + 1; });
     const topType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0];
 
+    // Average token usage per request
+    const tokRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/kaamqueue_logs?select=input_tokens,output_tokens`,
+      { headers }
+    );
+    const tokData = await tokRes.json();
+    const avg = (key) => tokData.length ? Math.round(tokData.reduce((s, r) => s + (r[key] || 0), 0) / tokData.length) : 0;
+
     return res.status(200).json({
       total_requests: totalRequests,
       shop_types: shopTypes,
       languages: languages,
-      top_request_type: topType ? topType[0] : 'N/A'
+      top_request_type: topType ? topType[0] : 'N/A',
+      avg_input_tokens: avg('input_tokens'),
+      avg_output_tokens: avg('output_tokens')
     });
   } catch (e) {
     return res.status(500).json({ error: 'Failed to load stats.', detail: String(e?.cause?.code || e?.message || e) });
