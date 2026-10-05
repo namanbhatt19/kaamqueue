@@ -64,14 +64,18 @@ OUTPUT FORMAT (strict JSON, no markdown):
   let geminiResponse;
   try {
     const geminiRes = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent',
+      `https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite'}:generateContent`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
         body: JSON.stringify({
           contents: [{ parts: [{ text: `${systemPrompt}\n\nCUSTOMER MESSAGE:\n${message}` }] }],
           // 400 tokens: Hindi/Tamil replies tokenize heavily and 200 truncated the JSON
-          generationConfig: { maxOutputTokens: 400, temperature: 0.3, responseMimeType: 'application/json' }
+          generationConfig: {
+            maxOutputTokens: 400, temperature: 0.3, responseMimeType: 'application/json',
+            // Gemini 3.x thinks by default, which would eat the small output budget
+            thinkingConfig: { thinkingLevel: 'minimal' }
+          }
         })
       }
     );
