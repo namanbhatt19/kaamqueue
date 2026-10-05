@@ -7,7 +7,7 @@ Small businesses paste a customer's WhatsApp message, pick their business type, 
 ## Stack
 - **Frontend:** Single-file HTML (vanilla JS, no framework)
 - **Backend:** Vercel serverless functions (`/api/process`, `/api/stats`)
-- **AI:** Google Gemini 2.5 Flash Lite (via API)
+- **AI:** Google Gemini 3.5 Flash Lite (via API)
 - **Database:** Supabase (PostgreSQL)
 
 ## Setup
