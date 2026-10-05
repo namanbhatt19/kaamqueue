@@ -76,6 +76,10 @@ OUTPUT FORMAT (strict JSON, no markdown):
       }
     );
     const geminiData = await geminiRes.json();
+    if (!geminiRes.ok) {
+      console.error('Gemini error', geminiRes.status, geminiData?.error?.message);
+      return res.status(502).json({ error: 'AI service error.', status: geminiRes.status, detail: geminiData?.error?.message });
+    }
     const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const inputTokens = geminiData?.usageMetadata?.promptTokenCount || 0;
     const outputTokens = geminiData?.usageMetadata?.candidatesTokenCount || 0;
@@ -86,7 +90,8 @@ OUTPUT FORMAT (strict JSON, no markdown):
     geminiResponse._inputTokens = inputTokens;
     geminiResponse._outputTokens = outputTokens;
   } catch (e) {
-    return res.status(500).json({ error: 'Failed to process message. Try rephrasing.' });
+    console.error('Gemini parse error', e?.message);
+    return res.status(500).json({ error: 'Failed to process message. Try rephrasing.', detail: String(e?.message || e) });
   }
 
   // --- Store in Supabase ---
