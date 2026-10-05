@@ -2,8 +2,8 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
 
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim().replace(/\/+$/, '');
+  const SUPABASE_SERVICE_KEY = (process.env.SUPABASE_SERVICE_KEY || '').trim();
   if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return res.status(500).json({ error: 'Config error' });
 
   const headers = {
@@ -17,6 +17,9 @@ export default async function handler(req, res) {
       { headers }
     );
     const countData = await countRes.json();
+    if (!countRes.ok) {
+      return res.status(500).json({ error: 'Supabase error', status: countRes.status, detail: countData?.message || countData });
+    }
     const totalRequests = Array.isArray(countData) ? countData.length : 0;
 
     // Distinct shop types
@@ -52,7 +55,7 @@ export default async function handler(req, res) {
       top_request_type: topType ? topType[0] : 'N/A'
     });
   } catch (e) {
-    return res.status(500).json({ error: 'Failed to load stats.' });
+    return res.status(500).json({ error: 'Failed to load stats.', detail: String(e?.cause?.code || e?.message || e) });
   }
 }
 

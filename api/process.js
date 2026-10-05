@@ -14,9 +14,9 @@ export default async function handler(req, res) {
   if (shop_type.length > 40) return res.status(400).json({ error: 'Invalid shop type.' });
   const visitor_id = String(req.body.visitor_id || 'anon').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || 'anon';
 
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || '').trim();
+  const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim().replace(/\/+$/, '');
+  const SUPABASE_SERVICE_KEY = (process.env.SUPABASE_SERVICE_KEY || '').trim();
 
   if (!GEMINI_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
     return res.status(500).json({ error: 'Server configuration error.' });
