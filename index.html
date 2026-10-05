@@ -99,6 +99,24 @@ section p.desc{color:var(--text-muted);font-size:.95rem;margin-bottom:1.5rem}
 .reply-draft h4{margin-bottom:.5rem}
 .reply-draft p{font-family:var(--font-hi);font-size:.9rem;line-height:1.6;color:var(--text)}
 .reply-lang{font-size:.7rem;color:var(--text-light);margin-top:.5rem}
+.reply-actions{display:flex;gap:.5rem;margin-top:.75rem;flex-wrap:wrap}
+.btn-small{font-family:var(--font);font-size:.78rem;font-weight:600;padding:.4rem .8rem;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;text-decoration:none}
+.btn-small:hover{border-color:var(--green);color:var(--green)}
+.btn-small.wa{background:var(--green);border-color:var(--green);color:#fff}
+.btn-small.wa:hover{background:var(--green-dark);color:#fff}
+
+/* TOMORROW'S QUEUE */
+.queue{margin-top:1.5rem;border-top:1px dashed var(--border);padding-top:1.25rem;display:none}
+.queue.visible{display:block}
+.queue-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:.75rem}
+.queue-head h3{font-size:.95rem;font-weight:700}
+.queue-head button{background:none;border:none;font-family:var(--font);font-size:.75rem;color:var(--text-light);cursor:pointer}
+.queue-counts{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.75rem}
+.queue-counts span{font-size:.72rem;font-weight:600;padding:.2rem .55rem;border-radius:100px;background:var(--green-light);color:var(--green-dark)}
+.queue-counts span.warn{background:var(--amber-light);color:#8B6914}
+.queue ol{padding-left:1.2rem;font-size:.85rem}
+.queue ol li{padding:.2rem 0}
+.queue ol li small{color:var(--text-light);margin-left:.35rem}
 .error-box{background:var(--red-light);border:1px solid #E8A0A0;border-radius:var(--radius);padding:1rem;color:var(--red);font-size:.88rem;margin-top:1rem}
 
 /* GUARDRAILS */
@@ -165,7 +183,7 @@ footer a{color:var(--green);text-decoration:none}
   <div class="steps">
     <div class="step"><div class="step-num">1</div><div class="step-body"><h3>Paste or forward a message</h3><p>Copy the customer's WhatsApp message exactly as it came — Hindi, English, Tamil, Hinglish, anything.</p></div></div>
     <div class="step"><div class="step-num">2</div><div class="step-body"><h3>Pick your business type</h3><p>Kirana, salon, clinic, tailor, tuition centre or other. This tells KaamQueue what kind of actions to extract.</p></div></div>
-    <div class="step"><div class="step-num">3</div><div class="step-body"><h3>Get your action slip</h3><p>Request type, up to three actions with timing, a confirm checklist for anything you must verify, and a ready-to-send reply in the customer's language.</p></div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-body"><h3>Get your action slip</h3><p>Request type, up to three actions with timing, a confirm checklist for anything you must verify, and a reply in the customer's language you can copy or send straight to WhatsApp. Every slip also lands in tomorrow's queue.</p></div></div>
   </div>
 </section>
 
@@ -196,6 +214,11 @@ footer a{color:var(--green);text-decoration:none}
       <button class="btn-process" id="processBtn" onclick="processMessage()">Organise this request</button>
       <div class="result-area" id="resultArea"></div>
       <div class="error-box" id="errorBox" style="display:none"></div>
+      <div class="queue" id="queue">
+        <div class="queue-head"><h3>Tomorrow's queue</h3><button onclick="clearQueue()">Clear</button></div>
+        <div class="queue-counts" id="queueCounts"></div>
+        <ol id="queueList"></ol>
+      </div>
     </div>
   </div>
 </section>
@@ -262,7 +285,7 @@ async function processMessage() {
 
   requestCount++;
   if (requestCount > MAX_REQUESTS) {
-    showError('You\'ve used all 5 demo requests. Refresh for a new session or come back later.');
+    showError('Demo limit reached (5 requests). Thanks for trying KaamQueue!');
     return;
   }
 
@@ -278,6 +301,7 @@ async function processMessage() {
     const d = await r.json();
     if (!r.ok) { showError(d.error || 'Something went wrong. Try again.'); return; }
     renderSlip(d);
+    addToQueue(d, shopType);
     loadStats();
   } catch(e) {
     showError('Network error — check your connection and try again.');
@@ -308,9 +332,51 @@ function renderSlip(d) {
         <h4>Draft reply for customer</h4>
         <p>${esc(d.reply)}</p>
         <div class="reply-lang">Language: ${esc(d.language_detected)}</div>
+        ${d.reply ? `<div class="reply-actions">
+          <button class="btn-small" onclick="copyReply(this)">Copy reply</button>
+          <a class="btn-small wa" href="https://wa.me/?text=${encodeURIComponent(d.reply)}" target="_blank" rel="noopener">Send on WhatsApp</a>
+        </div>` : ''}
       </div>
     </div>`;
   resultArea.className = 'result-area visible';
+  lastReply = d.reply || '';
+}
+
+let lastReply = '';
+async function copyReply(btn) {
+  try { await navigator.clipboard.writeText(lastReply); btn.textContent = 'Copied ✓'; }
+  catch(e) { btn.textContent = 'Copy failed'; }
+  setTimeout(() => { btn.textContent = 'Copy reply'; }, 1500);
+}
+
+// Tomorrow's queue: every slip from this browser rolled into one to-do list
+const QUEUE_KEY = 'kq_queue';
+function readQueue() {
+  try { return JSON.parse(localStorage.getItem(QUEUE_KEY)) || []; } catch(e) { return []; }
+}
+function saveQueue(q) {
+  try { localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); } catch(e) {}
+}
+function addToQueue(d, shopType) {
+  if (d.request_type === 'Flagged') return;
+  const q = readQueue();
+  q.push({ type: d.request_type, shop: shopType.split(' / ')[0], actions: d.actions || [], confirms: (d.confirm_items || []).length });
+  saveQueue(q);
+  renderQueue();
+}
+function clearQueue() { saveQueue([]); renderQueue(); }
+function renderQueue() {
+  const q = readQueue();
+  document.getElementById('queue').className = q.length ? 'queue visible' : 'queue';
+  if (!q.length) return;
+  const counts = {};
+  q.forEach(s => { counts[s.type] = (counts[s.type] || 0) + 1; });
+  const toConfirm = q.reduce((n, s) => n + s.confirms, 0);
+  document.getElementById('queueCounts').innerHTML =
+    Object.entries(counts).map(([t, n]) => `<span>${n} ${esc(t)}</span>`).join('') +
+    (toConfirm ? `<span class="warn">${toConfirm} to confirm</span>` : '');
+  document.getElementById('queueList').innerHTML =
+    q.flatMap(s => s.actions.map(a => `<li>${esc(a)}<small>${esc(s.shop)}</small></li>`)).join('');
 }
 
 function showError(msg) {
@@ -320,6 +386,7 @@ function showError(msg) {
 }
 
 loadStats();
+renderQueue();
 </script>
 </body>
 </html>

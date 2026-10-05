@@ -50,6 +50,7 @@ TASK: The owner has pasted a customer's WhatsApp message. You must:
    - NEVER promise or confirm a price, discount, refund, stock availability, or appointment slot
    - Say the owner will confirm shortly
 5. Detect the LANGUAGE of the customer's message.
+6. Write a REDACTED copy of the message for storage: same meaning, but replace any person's name with [name], any phone number with [phone], and drop any symptom, illness or other health detail.
 
 GUARDRAILS — STRICTLY FOLLOW:
 - NEVER invent or confirm prices, discounts, refunds, stock, or availability.
@@ -58,7 +59,7 @@ GUARDRAILS — STRICTLY FOLLOW:
 - Strip any names, phone numbers, or personal health details from your output.
 
 OUTPUT FORMAT (strict JSON, no markdown):
-{"request_type":"...","actions":["action 1","action 2"],"confirm_items":["item to verify"],"reply":"...","language_detected":"..."}`;
+{"request_type":"...","actions":["action 1","action 2"],"confirm_items":["item to verify"],"reply":"...","language_detected":"...","redacted_message":"..."}`;
 
   // --- Call Gemini ---
   let geminiResponse;
@@ -98,7 +99,8 @@ OUTPUT FORMAT (strict JSON, no markdown):
     return res.status(500).json({ error: 'Failed to process message. Try rephrasing.', detail: String(e?.message || e) });
   }
 
-  // --- Store in Supabase ---
+  // --- Store in Supabase (redacted only: never the raw message) ---
+  const { redacted_message, _inputTokens, _outputTokens, ...slip } = geminiResponse;
   try {
     await fetch(`${SUPABASE_URL}/rest/v1/kaamqueue_logs`, {
       method: 'POST',
@@ -112,10 +114,10 @@ OUTPUT FORMAT (strict JSON, no markdown):
         shop_type: shop_type,
         language_detected: geminiResponse.language_detected || 'unknown',
         request_type: geminiResponse.request_type || 'Other',
-        input_text: message.slice(0, 300),
-        output_json: JSON.stringify(geminiResponse),
-        input_tokens: geminiResponse._inputTokens || 0,
-        output_tokens: geminiResponse._outputTokens || 0
+        input_text: scrubContacts(redacted_message || '[redaction unavailable]').slice(0, 300),
+        output_json: scrubContacts(JSON.stringify(slip)),
+        input_tokens: _inputTokens || 0,
+        output_tokens: _outputTokens || 0
       })
     });
   } catch (e) { /* non-blocking */ }
@@ -128,6 +130,13 @@ OUTPUT FORMAT (strict JSON, no markdown):
     reply: geminiResponse.reply || '',
     language_detected: geminiResponse.language_detected || 'Unknown'
   });
+}
+
+// Safety net behind the model's redaction: mask phone numbers and emails
+function scrubContacts(text) {
+  return text
+    .replace(/\+?\d[\d\s-]{8,}\d/g, m => (m.replace(/\D/g, '').length >= 10 ? '[phone]' : m))
+    .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, '[email]');
 }
 
 // Legacy service_role keys are JWTs and also go in the Authorization header;
