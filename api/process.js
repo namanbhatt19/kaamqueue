@@ -22,11 +22,13 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Server configuration error.' });
   }
 
+  const sbHeaders = sbAuthHeaders(SUPABASE_SERVICE_KEY);
+
   // --- Rate limit: 5 requests per visitor ---
   try {
     const countRes = await fetch(
       `${SUPABASE_URL}/rest/v1/kaamqueue_logs?select=id&visitor_id=eq.${encodeURIComponent(visitor_id)}`,
-      { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
+      { headers: { ...sbHeaders } }
     );
     const countData = await countRes.json();
     if (Array.isArray(countData) && countData.length >= 5) {
@@ -92,8 +94,7 @@ OUTPUT FORMAT (strict JSON, no markdown):
     await fetch(`${SUPABASE_URL}/rest/v1/kaamqueue_logs`, {
       method: 'POST',
       headers: {
-        'apikey': SUPABASE_SERVICE_KEY,
-        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        ...sbHeaders,
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
       },
@@ -118,4 +119,10 @@ OUTPUT FORMAT (strict JSON, no markdown):
     reply: geminiResponse.reply || '',
     language_detected: geminiResponse.language_detected || 'Unknown'
   });
+}
+
+// Legacy service_role keys are JWTs and also go in the Authorization header;
+// new sb_secret_ keys are rejected there and must be sent as apikey only.
+function sbAuthHeaders(key) {
+  return key.startsWith('eyJ') ? { apikey: key, Authorization: `Bearer ${key}` } : { apikey: key };
 }

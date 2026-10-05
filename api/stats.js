@@ -7,8 +7,7 @@ export default async function handler(req, res) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return res.status(500).json({ error: 'Config error' });
 
   const headers = {
-    'apikey': SUPABASE_SERVICE_KEY,
-    'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
+    ...sbAuthHeaders(SUPABASE_SERVICE_KEY)
   };
 
   try {
@@ -55,4 +54,10 @@ export default async function handler(req, res) {
   } catch (e) {
     return res.status(500).json({ error: 'Failed to load stats.' });
   }
+}
+
+// Legacy service_role keys are JWTs and also go in the Authorization header;
+// new sb_secret_ keys are rejected there and must be sent as apikey only.
+function sbAuthHeaders(key) {
+  return key.startsWith('eyJ') ? { apikey: key, Authorization: `Bearer ${key}` } : { apikey: key };
 }
