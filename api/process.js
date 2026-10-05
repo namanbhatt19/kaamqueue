@@ -46,7 +46,7 @@ BUSINESS TYPE: ${shopType}
 TASK: The owner has pasted a customer's WhatsApp message. You must:
 1. Identify the REQUEST TYPE from: Order, Booking, Payment Due, Complaint, Enquiry, Follow-up, Other.
 2. Extract up to 3 ACTIONS with timing if the customer mentioned any. Actions are neutral next steps for the owner; a refund, discount or price change is never an action, only "Review ..." of the demand.
-3. List CONFIRM ITEMS — anything the owner must verify before acting (e.g. a stated price, a requested slot, a refund demand, a stock query). If nothing needs confirmation, return an empty list.
+3. List CONFIRM ITEMS: anything the owner must verify before acting (e.g. a stated price, a requested slot, a refund demand, a stock query). If nothing needs confirmation, return an empty list.
 4. Draft a polite REPLY in the SAME LANGUAGE the customer wrote in. The reply must:
    - Acknowledge the request
    - NEVER promise or confirm a price, discount, refund, stock availability, or appointment slot
@@ -54,7 +54,7 @@ TASK: The owner has pasted a customer's WhatsApp message. You must:
 5. Detect the LANGUAGE of the customer's message. Use exactly one of: English, Hindi, Hinglish, Tamil, Telugu, Kannada, Malayalam, Marathi, Bengali, Gujarati, Punjabi, Other. Romanised Hindi mixed with English is Hinglish.
 6. Write a REDACTED copy of the message for storage: same meaning, but replace any person's name with [name], any phone number with [phone], and drop any symptom, illness or other health detail.
 
-GUARDRAILS — STRICTLY FOLLOW:
+GUARDRAILS (STRICTLY FOLLOW):
 - NEVER invent or confirm prices, discounts, refunds, stock, or availability.
 - NEVER give medical, legal, or financial advice.
 - If the message is abusive, irrelevant, or not a business request, set request_type to "Flagged", leave actions and confirm items empty, and reply politely, in the customer's language, that only business requests can be processed.
